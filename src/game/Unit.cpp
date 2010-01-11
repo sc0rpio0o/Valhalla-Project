@@ -9897,6 +9897,13 @@ uint32 Unit::MeleeDamageBonus(Unit *pVictim, uint32 pdamage,WeaponAttackType att
     if (!isWeaponDamageBasedSpell)
     {
         float LvlPenalty = CalculateLevelPenalty(spellProto);
+        int32 DoneAdvertisedBenefit  = SpellBaseDamageBonus(GetSpellSchoolMask(spellProto));
+        int32 TakenAdvertisedBenefit = SpellBaseDamageBonusForVictim(GetSpellSchoolMask(spellProto), pVictim);
+        // Spellmod SpellDamage
+        float SpellModSpellDamage = 100.0f;
+        if(Player* modOwner = GetSpellModOwner())
+            modOwner->ApplySpellMod(spellProto->Id,SPELLMOD_SPELL_BONUS_DAMAGE,SpellModSpellDamage);
+        SpellModSpellDamage /= 100.0f;
 
         // Check for table values
         if (SpellBonusEntry const* bonus = sSpellMgr.GetSpellBonusData(spellProto->Id))
@@ -9910,8 +9917,8 @@ uint32 Unit::MeleeDamageBonus(Unit *pVictim, uint32 pdamage,WeaponAttackType att
             if (bonus->ap_bonus)
                 DoneFlat += bonus->ap_bonus * (GetTotalAttackPowerValue(BASE_ATTACK) + APbonus) * stack;
 
-            DoneFlat  *= coeff;
-            TakenFlat *= coeff;
+            DoneFlat  += int32(DoneAdvertisedBenefit * coeff * SpellModSpellDamage);
+            TakenFlat += int32(TakenAdvertisedBenefit * coeff);
         }
         // Default calculation
         else if (DoneFlat || TakenFlat)
