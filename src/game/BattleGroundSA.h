@@ -19,7 +19,7 @@
 #ifndef __BATTLEGROUNDSA_H
 #define __BATTLEGROUNDSA_H
 
-class BattleGround;
+#include "BattleGround.h"
 
 enum BG_SA_WorldStates
 {
@@ -96,9 +96,37 @@ enum BG_SA_Timers
 };
 struct BG_SA_RoundScore
 {
-  TeamId winner;
+  BattleGroundTeamId winner;
   uint32 time;
 };
+
+enum BG_SA_Objects
+{
+    BG_SA_GREEN_GATE = 0,
+    BG_SA_YELLOW_GATE,
+    BG_SA_BLUE_GATE,
+    BG_SA_RED_GATE,
+    BG_SA_PURPLE_GATE,
+    BG_SA_ANCIENT_GATE,
+    BG_SA_TITAN_RELIC,
+    BG_SA_BOAT_ONE,
+    BG_SA_BOAT_TWO,
+    BG_SA_SIGIL_1,
+    BG_SA_SIGIL_2,
+    BG_SA_SIGIL_3,
+    BG_SA_SIGIL_4,
+    BG_SA_SIGIL_5,
+    BG_SA_CENTRAL_FLAGPOLE,
+    BG_SA_RIGHT_FLAGPOLE,
+    BG_SA_LEFT_FLAGPOLE,
+    BG_SA_CENTRAL_FLAG,
+    BG_SA_RIGHT_FLAG,
+    BG_SA_LEFT_FLAG,
+    BG_SA_MAXOBJ
+};
+
+#define SCORE_DESTROYED_DEMOLISHER 1
+#define SCORE_DESTROYED_WALL 2
 class BattleGroundSAScore : public BattleGroundScore
 {
     public:
@@ -116,6 +144,7 @@ class BattleGroundSA : public BattleGround
         BattleGroundSA();
         ~BattleGroundSA();
         void Update(uint32 diff);
+        void Reset();
 
         /* inherited from BattlegroundClass */
         virtual void AddPlayer(Player *plr);
@@ -131,13 +160,13 @@ class BattleGroundSA : public BattleGround
         void UpdatePlayerScore(Player *Source, uint32 type, uint32 value);
 
         //world states
-        void FillInitialWorldStates(WorldPacket& data);
+        virtual void FillInitialWorldStates(WorldPacket& data);
 
     private:
-        TeamId attackers;
+        BattleGroundTeamId attackers;
         BG_SA_GateState GateStatus[6];
         BG_SA_Status status;
-        TeamId GraveyardStatus[BG_SA_MAX_GY];
+        BattleGroundTeamId GraveyardStatus[BG_SA_MAX_GY];
         bool TimerEnabled;
         bool ShipsStarted;
         uint32 TotalTime;
