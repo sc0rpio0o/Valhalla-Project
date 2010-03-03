@@ -21,6 +21,84 @@
 
 class BattleGround;
 
+enum BG_SA_WorldStates
+{
+    BG_SA_TIMER_MINS = 3559,
+    BG_SA_TIMER_SEC_TENS = 3560,
+    BG_SA_TIMER_SEC_DECS = 3561,
+    BG_SA_ALLY_ATTACKS  = 4352,
+    BG_SA_HORDE_ATTACKS = 4353,
+    
+    BG_SA_PURPLE_GATEWS = 3614,
+    BG_SA_RED_GATEWS = 3617,
+    BG_SA_BLUE_GATEWS = 3620,
+    BG_SA_GREEN_GATEWS = 3623,
+    BG_SA_YELLOW_GATEWS = 3638,
+    BG_SA_ANCIENT_GATEWS = 3849,
+    
+    BG_SA_LEFT_GY_ALLIANCE = 3635,
+    BG_SA_RIGHT_GY_ALLIANCE = 3636,
+    BG_SA_CENTER_GY_ALLIANCE = 3637,
+
+
+    BG_SA_RIGHT_ATT_TOKEN_ALL = 3627,
+    BG_SA_LEFT_ATT_TOKEN_ALL = 3626,
+
+
+    BG_SA_LEFT_ATT_TOKEN_HRD = 3629,
+    BG_SA_RIGHT_ATT_TOKEN_HRD = 3628,
+
+
+    BG_SA_HORDE_DEFENCE_TOKEN = 3631,
+    BG_SA_ALLIANCE_DEFENCE_TOKEN = 3630,
+
+
+    BG_SA_RIGHT_GY_HORDE = 3632,
+    BG_SA_LEFT_GY_HORDE = 3633,
+    BG_SA_CENTER_GY_HORDE = 3634,
+
+
+    BG_SA_BONUS_TIMER = 0xdf3,
+    BG_SA_ENABLE_TIMER = 3564,
+};
+
+enum BG_SA_Graveyards
+{
+    BG_SA_BEACH_GY = 0,
+    BG_SA_DEFENDER_LAST_GY,
+    BG_SA_RIGHT_CAPTURABLE_GY,
+    BG_SA_LEFT_CAPTURABLE_GY,
+    BG_SA_CENTRAL_CAPTURABLE_GY,
+    BG_SA_MAX_GY
+};
+enum BG_SA_Status
+{
+    BG_SA_NOTSTARTED = 0,
+    BG_SA_WARMUP,
+    BG_SA_ROUND_ONE,
+    BG_SA_SECOND_WARMUP,
+    BG_SA_ROUND_TWO,
+    BG_SA_BONUS_ROUND
+};
+
+
+enum BG_SA_GateState
+{
+    BG_SA_GATE_OK = 1,
+    BG_SA_GATE_DAMAGED = 2,
+    BG_SA_GATE_DESTROYED = 3
+};
+enum BG_SA_Timers
+{
+    BG_SA_BOAT_START  =  60000,
+    BG_SA_WARMUPLENGTH = 120000,
+    BG_SA_ROUNDLENGTH = 600000
+};
+struct BG_SA_RoundScore
+{
+  TeamId winner;
+  uint32 time;
+};
 class BattleGroundSAScore : public BattleGroundScore
 {
     public:
@@ -43,6 +121,7 @@ class BattleGroundSA : public BattleGround
         virtual void AddPlayer(Player *plr);
         virtual void StartingEventCloseDoors();
         virtual void StartingEventOpenDoors();
+        void ToggleTimer();
 
         void RemovePlayer(Player *plr,uint64 guid);
         void HandleAreaTrigger(Player *Source, uint32 Trigger);
@@ -51,6 +130,17 @@ class BattleGroundSA : public BattleGround
         /* Scorekeeping */
         void UpdatePlayerScore(Player *Source, uint32 type, uint32 value);
 
+        //world states
+        void FillInitialWorldStates(WorldPacket& data);
+
     private:
+        TeamId attackers;
+        BG_SA_GateState GateStatus[6];
+        BG_SA_Status status;
+        TeamId GraveyardStatus[BG_SA_MAX_GY];
+        bool TimerEnabled;
+        bool ShipsStarted;
+        uint32 TotalTime;
+        BG_SA_RoundScore RoundScores[2];
 };
 #endif

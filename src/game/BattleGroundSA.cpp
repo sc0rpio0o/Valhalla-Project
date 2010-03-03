@@ -28,16 +28,82 @@ BattleGroundSA::BattleGroundSA()
     m_StartMessageIds[BG_STARTING_EVENT_SECOND] = LANG_BG_WS_START_ONE_MINUTE;
     m_StartMessageIds[BG_STARTING_EVENT_THIRD]  = LANG_BG_WS_START_HALF_MINUTE;
     m_StartMessageIds[BG_STARTING_EVENT_FOURTH] = LANG_BG_WS_HAS_BEGUN;
+    TimerEnabled = false;
 }
 
 BattleGroundSA::~BattleGroundSA()
 {
 
 }
-
+void BattleGroundSA::Reset()
+{
+    attackers = ( (urand(0,1)) ? TEAM_ALLIANCE : TEAM_HORDE);
+    for(uint8 i = 0; i <= 5; i++)
+    {
+        GateStatus[i] = BG_SA_GATE_OK;
+    }
+    ShipsStarted = false;
+    status = BG_SA_WARMUP;
+}
 void BattleGroundSA::Update(uint32 diff)
 {
     BattleGround::Update(diff);
+
+    TotalTime += diff;
+
+    if(status == BG_SA_WARMUP || status == BG_SA_SECOND_WARMUP)
+    {
+        if(TotalTime >= BG_SA_WARMUPLENGTH)
+        {
+            TotalTime = 0;
+            ToggleTimer();
+            status = (status == BG_SA_WARMUP) ? BG_SA_ROUND_ONE : BG_SA_ROUND_TWO;
+        }
+        //if(TotalTime >= BG_SA_BOAT_START)
+            //StartShips();
+        return;
+    }
+    else if(status == BG_SA_ROUND_ONE)
+    {
+        if(TotalTime >= BG_SA_ROUNDLENGTH)
+        {
+            RoundScores[0].time = TotalTime;
+            TotalTime = 0;
+            status = BG_SA_SECOND_WARMUP;
+            attackers = (attackers == TEAM_ALLIANCE) ? TEAM_HORDE : TEAM_ALLIANCE;
+            RoundScores[0].winner = attackers;
+            status = BG_SA_SECOND_WARMUP;
+            ToggleTimer();
+            //ResetObjs();
+            return;
+        }
+    }
+    else if(status == BG_SA_ROUND_TWO)
+    {
+        if(TotalTime >= BG_SA_ROUNDLENGTH)
+        {
+            RoundScores[1].time = TotalTime;
+            RoundScores[1].winner = (attackers == TEAM_ALLIANCE) ? TEAM_HORDE : TEAM_ALLIANCE;
+            
+            if(RoundScores[0].time < RoundScores[1].time)
+              EndBattleGround(RoundScores[0].winner == TEAM_ALLIANCE ? ALLIANCE : HORDE);
+            else
+              EndBattleGround(RoundScores[1].winner == TEAM_ALLIANCE ? ALLIANCE : HORDE);
+            
+            return;
+        }
+    }
+
+    if(status == BG_SA_ROUND_ONE || status == BG_SA_ROUND_TWO)
+    {
+        //Send Time
+        uint32 end_of_round = (BG_SA_ROUNDLENGTH - TotalTime);
+        UpdateWorldState(BG_SA_TIMER_MINS, end_of_round/60000);
+        UpdateWorldState(BG_SA_TIMER_SEC_TENS, (end_of_round%60000)/10000);
+        UpdateWorldState(BG_SA_TIMER_SEC_DECS, ((end_of_round%60000)%10000)/1000);
+    }
+
+    
 }
 
 void BattleGroundSA::StartingEventCloseDoors()
@@ -75,6 +141,55 @@ void BattleGroundSA::UpdatePlayerScore(Player* Source, uint32 type, uint32 value
     BattleGroundScoreMap::iterator itr = m_PlayerScores.find(Source->GetGUID());
     if(itr == m_PlayerScores.end())                         // player not found...
         return;
-
+    if(type == SCORE_DESTROYED_DEMOLISHER)
+        ((BattleGroundSAScore*)itr->second)->demolishers_destroyed += value;
+    else if(type == SCORE_DESTROYED_WALL)
+        ((BattleGroundSAScore*)itr->second)->gates_destroyed += value;
+    
     BattleGround::UpdatePlayerScore(Source,type,value);
+
+}
+void BattleGroundSA::FillInitialWorldStates(WorldPacket& data)
+{
+    uint32 ally_attacks = uint32(attackers == TEAM_ALLIANCE ? 1 : 0);
+    uint32 horde_attacks = uint32(attackers == TEAM_HORDE ? 1 : 0);
+
+    data << uint32(BG_SA_ANCIENT_GATEWS) << uint32(GateStatus[BG_SA_ANCIENT_GATE]);
+    data << uint32(BG_SA_YELLOW_GATEWS) << uint32(GateStatus[BG_SA_YELLOW_GATE]);
+    data << uint32(BG_SA_GREEN_GATEWS) << uint32(GateStatus[BG_SA_GREEN_GATE]);
+    data << uint32(BG_SA_BLUE_GATEWS) << uint32(GateStatus[BG_SA_BLUE_GATE]);
+    data << uint32(BG_SA_RED_GATEWS) << uint32(GateStatus[BG_SA_RED_GATE]);
+    data << uint32(BG_SA_PURPLE_GATEWS) << uint32(GateStatus[BG_SA_PURPLE_GATE]);
+
+    data << uint32(BG_SA_BONUS_TIMER) << uint32(0);
+
+    data << uint32(BG_SA_HORDE_ATTACKS)<< horde_attacks;
+    data << uint32(BG_SA_ALLY_ATTACKS) << ally_attacks;
+
+    //Time will be sent on first update...
+    data << uint32(BG_SA_ENABLE_TIMER) << ((TimerEnabled) ? uint32(1) : uint32(0));
+    data << uint32(BG_SA_TIMER_MINS) << uint32(0);
+    data << uint32(BG_SA_TIMER_SEC_TENS) << uint32(0);
+    data << uint32(BG_SA_TIMER_SEC_DECS) << uint32(0);
+
+    data << uint32(BG_SA_RIGHT_GY_HORDE) << uint32(GraveyardStatus[BG_SA_RIGHT_CAPTURABLE_GY] == TEAM_HORDE?1:0 );
+    data << uint32(BG_SA_LEFT_GY_HORDE) << uint32(GraveyardStatus[BG_SA_LEFT_CAPTURABLE_GY] == TEAM_HORDE?1:0 );
+    data << uint32(BG_SA_CENTER_GY_HORDE) << uint32(GraveyardStatus[BG_SA_CENTRAL_CAPTURABLE_GY] == TEAM_HORDE?1:0 );
+
+    data << uint32(BG_SA_RIGHT_GY_ALLIANCE) << uint32(GraveyardStatus[BG_SA_RIGHT_CAPTURABLE_GY] == TEAM_ALLIANCE?1:0 );
+    data << uint32(BG_SA_LEFT_GY_ALLIANCE) << uint32(GraveyardStatus[BG_SA_LEFT_CAPTURABLE_GY] == TEAM_ALLIANCE?1:0 );
+    data << uint32(BG_SA_CENTER_GY_ALLIANCE) << uint32(GraveyardStatus[BG_SA_CENTRAL_CAPTURABLE_GY] == TEAM_ALLIANCE?1:0 );
+
+    data << uint32(BG_SA_HORDE_DEFENCE_TOKEN) << ally_attacks;
+    data << uint32(BG_SA_ALLIANCE_DEFENCE_TOKEN) << horde_attacks;
+
+    data << uint32(BG_SA_LEFT_ATT_TOKEN_HRD) << horde_attacks;
+    data << uint32(BG_SA_RIGHT_ATT_TOKEN_HRD) << horde_attacks;
+    data << uint32(BG_SA_RIGHT_ATT_TOKEN_ALL) <<  ally_attacks;
+    data << uint32(BG_SA_LEFT_ATT_TOKEN_ALL) <<  ally_attacks;
+}
+void BattleGroundSA::ToggleTimer()
+{
+    TimerEnabled = !TimerEnabled;
+    UpdateWorldState(BG_SA_ENABLE_TIMER, (TimerEnabled) ? 1 : 0);
 }
