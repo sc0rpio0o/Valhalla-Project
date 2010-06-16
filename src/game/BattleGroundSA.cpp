@@ -156,6 +156,10 @@ void BattleGroundSA::UpdatePlayerScore(Player* Source, uint32 type, uint32 value
     BattleGround::UpdatePlayerScore(Source,type,value);
 
 }
+
+void BattleGroundSA::EventPlayerDamegeGO(Player *player, GameObject* target_obj, uint32 eventId)
+{
+}
 void BattleGroundSA::FillInitialWorldStates(WorldPacket& data)
 {
     uint32 ally_attacks = uint32(attackers == BG_TEAM_ALLIANCE ? 1 : 0);

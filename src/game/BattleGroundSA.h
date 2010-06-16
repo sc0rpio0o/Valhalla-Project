@@ -150,6 +150,7 @@ class BattleGroundSA : public BattleGround
         virtual void AddPlayer(Player *plr);
         virtual void StartingEventCloseDoors();
         virtual void StartingEventOpenDoors();
+        virtual void EventPlayerDamegeGO(Player *player, GameObject* target_obj, uint32 eventId);
         void ToggleTimer();
 
         void RemovePlayer(Player *plr,uint64 guid);
