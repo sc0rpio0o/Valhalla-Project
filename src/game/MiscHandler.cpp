@@ -271,9 +271,8 @@ void WorldSession::HandleLogoutRequestOpcode( WorldPacket & /*recv_data*/ )
                                                             //...is jumping ...is falling
         GetPlayer()->m_movementInfo.HasMovementFlag(MovementFlags(MOVEFLAG_FALLING | MOVEFLAG_FALLINGFAR)))
     {
-        WorldPacket data( SMSG_LOGOUT_RESPONSE, (2+4) ) ;
-        data << (uint8)0xC;
-        data << uint32(0);
+        WorldPacket data( SMSG_LOGOUT_RESPONSE, 5 );
+        data << uint32(1);
         data << uint8(0);
         SendPacket( &data );
         LogoutRequest(0);
@@ -1191,7 +1190,7 @@ void WorldSession::HandleWhoisOpcode(WorldPacket& recv_data)
 
     uint32 accid = plr->GetSession()->GetAccountId();
 
-    QueryResult *result = loginDatabase.PQuery("SELECT username,email,last_ip FROM account WHERE id=%u", accid);
+    QueryResult *result = LoginDatabase.PQuery("SELECT username,email,last_ip FROM account WHERE id=%u", accid);
     if(!result)
     {
         SendNotification(LANG_ACCOUNT_FOR_PLAYER_NOT_FOUND, charname.c_str());
